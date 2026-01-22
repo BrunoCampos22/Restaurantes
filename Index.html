@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FoodReels</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:linear-gradient(135deg,#ff7a18,#ffb347);
+  padding-top:70px;
+}
+.top-nav{
+  position:fixed;top:0;width:100%;
+  background:#fff;
+  display:flex;justify-content:space-around;
+  padding:12px 0;
+  box-shadow:0 4px 10px rgba(0,0,0,.2);
+  z-index:10;
+}
+.top-nav button{
+  background:none;border:none;
+  font-weight:bold;color:#ff7a18;
+  cursor:pointer;font-size:15px;
+}
+.app{max-width:500px;margin:auto;padding:16px}
+.section{display:none}
+.section.active{display:block}
+.card{
+  background:#fff;padding:16px;
+  border-radius:14px;margin-bottom:14px;
+}
+.form{
+  background:#fff;padding:16px;
+  border-radius:14px;margin-bottom:14px;
+}
+input,select,button{
+  width:100%;margin-top:10px;
+  padding:12px;border-radius:10px;
+  border:1px solid #ddd;
+}
+button.action{
+  background:#ff7a18;color:#fff;
+  border:none;font-weight:bold;
+}
+#reels{
+  height:calc(100vh - 120px);
+  overflow-y:auto;scroll-snap-type:y mandatory;
+}
+.reel{scroll-snap-align:start}
+.reel video{
+  width:100%;height:70vh;
+  object-fit:cover;border-radius:12px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="top-nav">
+  <button onclick="mostrar('procurar')">🔍 Procurar</button>
+  <button onclick="mostrar('avaliar')">✍️ Avaliar</button>
+  <button onclick="mostrar('videos')">🎬 Vídeos</button>
+</div>
+
+<div class="app">
+
+<!-- LOGIN -->
+<div id="loginDiv" class="form">
+  <input id="email" placeholder="Email">
+  <input id="senha" type="password" placeholder="Senha">
+  <button class="action" onclick="login()">Entrar</button>
+</div>
+
+<!-- PROCURAR -->
+<div id="procurar" class="section">
+  <div class="form">
+    <select id="filtroTipo">
+      <option value="">Todos os tipos</option>
+      <option>Restaurante</option>
+      <option>Café</option>
+      <option>Italiano</option>
+      <option>Mexicano</option>
+      <option>Francês</option>
+      <option>Japonês</option>
+      <option>Brasileiro</option>
+      <option>Fast Food</option>
+    </select>
+
+    <select id="filtroEstrela">
+      <option value="">Todas estrelas</option>
+      <option value="5">5 estrelas</option>
+      <option value="4">4 estrelas ou mais</option>
+      <option value="3">3 estrelas ou mais</option>
+      <option value="2">2 estrelas ou mais</option>
+      <option value="1">1 estrela ou mais</option>
+    </select>
+
+    <select id="filtroDistancia">
+      <option value="">Qualquer distância</option>
+      <option value="1">Até 1 km</option>
+      <option value="2">Até 2 km</option>
+      <option value="3">Até 3 km</option>
+      <option value="4">Até 4 km</option>
+      <option value="5">Até 5 km</option>
+    </select>
+
+    <button class="action" onclick="renderRestaurants()">Filtrar</button>
+  </div>
+
+  <div id="reviews"></div>
+</div>
+
+<!-- AVALIAR -->
+<div id="avaliar" class="section">
+  <div class="form">
+    <input id="name" placeholder="Nome do restaurante">
+    <input id="location" placeholder="Localização">
+
+    <select id="rating">
+      <option value="">Nota</option>
+      <option value="5">⭐⭐⭐⭐⭐</option>
+      <option value="4">⭐⭐⭐⭐</option>
+      <option value="3">⭐⭐⭐</option>
+      <option value="2">⭐⭐</option>
+      <option value="1">⭐</option>
+    </select>
+
+    <select id="type">
+      <option value="">Tipo</option>
+      <option>Restaurante</option>
+      <option>Café</option>
+      <option>Italiano</option>
+      <option>Mexicano</option>
+      <option>Francês</option>
+      <option>Japonês</option>
+      <option>Brasileiro</option>
+      <option>Fast Food</option>
+      <option>Outro</option>
+    </select>
+
+    <input type="file" id="media" accept="video/*,image/*">
+    <button class="action" onclick="addReview()">Publicar</button>
+  </div>
+</div>
+
+<!-- VÍDEOS -->
+<div id="videos" class="section">
+  <div id="reels"></div>
+</div>
+
+</div>
+
+<script>
+let usuario=null;
+const usuarios={};
+const restaurantes={};
+const reelsVideos=[];
+
+// ===== CHECAR LOGIN PERSISTENTE =====
+if(localStorage.getItem("usuario")){
+  usuario=localStorage.getItem("usuario");
+  document.getElementById("loginDiv").style.display="none";
+  mostrar("procurar");
+}
+
+// ===== LOGIN =====
+function login(){
+  const e=email.value.trim(), s=senha.value.trim();
+  if(!e||!s)return alert("Preencha login");
+  if(!usuarios[e])usuarios[e]=s; // criar usuário
+  if(usuarios[e]!==s)return alert("Senha incorreta");
+  usuario=e;
+  localStorage.setItem("usuario",usuario);
+  alert("Logado!");
+  document.getElementById("loginDiv").style.display="none";
+  mostrar("procurar");
+}
+
+// ===== NAVEGAÇÃO =====
+function mostrar(id){
+  if(!usuario){
+    alert("Faça login primeiro");
+    return;
+  }
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ===== MÉDIA =====
+function media(arr){
+  return (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1);
+}
+
+// ===== ADICIONAR AVALIAÇÃO =====
+function addReview(){
+  if(!usuario)return alert("Faça login");
+  const n=name.value.trim(), l=location.value.trim();
+  const r=Number(rating.value), t=type.value;
+  const m=document.getElementById("media").files[0];
+
+  if(!n||!l||!r||!t)return alert("Preencha tudo");
+
+  if(!restaurantes[n]){
+    restaurantes[n]={name:n,location:l,type:t,ratings:[],distance:Math.floor(Math.random()*5)+1};
+  }
+  restaurantes[n].ratings.push(r);
+
+  if(m&&m.type.startsWith("video")){
+    const url=URL.createObjectURL(m);
+    reelsVideos.push({name:n,location:l,rating:r,url});
+    renderReels();
+  }
+
+  renderRestaurants();
+  mostrar("procurar");
+}
+
+// ===== LISTAR RESTAURANTES =====
+function renderRestaurants(){
+  reviews.innerHTML="";
+  Object.values(restaurantes).forEach(r=>{
+    const ft=filtroTipo.value;
+    const fe=filtroEstrela.value;
+    const fd=filtroDistancia.value;
+    const avg=media(r.ratings);
+
+    if(ft && r.type!==ft) return;
+    if(fe && avg<fe) return;
+    if(fd && r.distance>fd) return;
+
+    reviews.innerHTML+=`
+      <div class="card">
+        <h3>${r.name}</h3>
+        <p>📍 ${r.location}</p>
+        <p>⭐ ${avg} (${r.ratings.length} avaliações)</p>
+        <p>🍽️ ${r.type}</p>
+        <p>📏 ${r.distance} km</p>
+      </div>`;
+  });
+}
+
+// ===== REELS =====
+function renderReels(){
+  reels.innerHTML="";
+  reelsVideos.forEach(v=>{
+    reels.innerHTML+=`
+      <div class="card reel">
+        <video autoplay muted loop src="${v.url}"></video>
+        <h3>${v.name}</h3>
+        <p>⭐ ${v.rating}</p>
+      </div>`;
+  });
+}
+</script>
+
+</body>
+</html>
